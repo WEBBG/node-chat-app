@@ -1,6 +1,6 @@
 var socket = io();
 
-function scrollToBottom () {
+function scrollToBottom() {
   var messages = $('#messages');
   var newMessage = messages.children('li:last-child');
   var clientHeight = messages.prop('clientHeight');
@@ -9,17 +9,35 @@ function scrollToBottom () {
   var newMessageHeight = newMessage.innerHeight();
   var lastMessageHeight = newMessage.prev().innerHeight();
 
-  if(clientHeight + scrollTop + newMessageHeight + lastMessageHeight >= scrollHeight) {
+  if (clientHeight + scrollTop + newMessageHeight + lastMessageHeight >= scrollHeight) {
     messages.scrollTop(scrollHeight);
   }
 }
 
 socket.on('connect', function () {
-  console.log('Connected to server');
+  var params = $.deparam(window.location.search);
+  socket.emit('join', params, function (err) {
+    if (err) {
+      alert(err);
+      window.location.href = '/';
+    } else {
+      console.log('No Error');
+    }
+  });
 });
 
 socket.on('disconnect', function () {
   console.log('Disconnected from server');
+});
+
+socket.on('updateUserList', function (users) {
+  var ol = $('<ol></ol>');
+
+  users.forEach(function (user) {
+    ol.append($('<li></li>').text(user));
+  });
+
+  $('#users').html(ol);
 });
 
 socket.on('newMessage', function (message) {
@@ -61,20 +79,20 @@ $('#message-form').on('submit', function (e) {
 });
 
 var locationButton = $('#send-location');
-locationButton.on('click', function() {
-  if(!navigator.geolocation) {
+locationButton.on('click', function () {
+  if (!navigator.geolocation) {
     return alert('Geolocation not supported by your Browser.');
   }
 
   locationButton.attr('disabled', 'disabled').text('Sending location...');
 
-  navigator.geolocation.getCurrentPosition(function(position) {
+  navigator.geolocation.getCurrentPosition(function (position) {
     locationButton.removeAttr('disabled').text('Send location');
     socket.emit('createLocationMessage', {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude
     });
-  }, function() {
+  }, function () {
     locationButton.removeAttr('disabled').text('Send location');
     alert('Unable to fetch location.');
   });
